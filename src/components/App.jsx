@@ -1,124 +1,92 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
 import Button from './Button';
 import Loader from './Loader';
-import Error from './Error';
 import Modal from './Modal';
-import { ToastContainer } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // import fetchGallery from '../services/imagesApi';
 import api from 'services/imagesApi';
 
-const status = {
-  IDLE: 'idle',
-  PENDING: 'pending',
-  REJECTED: 'rejected',
-  RESOLVED: 'resolved',
-};
 
-export default class App extends Component {
-  state = {
-    searchQuery: '',
-    page: 1,
-    images: [],
-    error: null,
-    status: status.IDLE,
-    showModal: false,
-    bigImage: '',
-    totalHits: 1,
-  };
+function App() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImg, setLargeImg] = useState('');
+  const [page, setPage] = useState(1);
+  const [visibleButton, setVisibleButton] = useState(false);
 
-  toggleModal = largeImageURL => {
-    this.setState(({ showModal, bigImage }) => ({
-      showModal: !showModal,
-      bigImage: largeImageURL,
-    }));
-  };
-
-
-  handelFormSubmit = searchQuery => {
-    this.setState({
-      searchQuery,
-      page: 1,
-    });
-  };
-
-  onLoadMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
-
-  componentDidUpdate(prevProps, prevState) {
-    const prevImages = prevState.searchQuery;
-    const nextImages = this.state.searchQuery;
-
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
-
-    if (prevImages !== nextImages) {
-      this.setState({
-        status: status.PENDING, page: 1, images: [],
-      });
-      this.fetchGallery(nextImages, nextPage);
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
     }
 
-    // Загружаем больше картинок
-    if (prevPage !== nextPage && nextPage !== 1) {
-      this.fetchGallery(nextImages, nextPage);
-    }
-  }
+    setLoading(true);
+    setVisibleButton(false);
 
-  fetchGallery(nextImages, nextPage) {
-    api.fetchGallery(nextImages, nextPage)
-      .then(data => {
-        this.setState(prevState => {
-          return {
-            prevState, status: status.RESOLVED,
-            images: [...prevState.images, ...data.hits],
-            searchQuery: nextImages,
-            totalHits: data.totalHits,
-          };
-        });
+    api.fetchGallery(searchQuery, page)
+      .then(newImages => {
+        if (newImages.total === 0) {
+          setVisibleButton(false);
+          toast.warn('Nothing was found on your request');
+        }
+        if (newImages) {
+          setImages([...images, ...newImages.hits]);
+        }
+        if (page > 1) {
+          window.scrollTo({
+            top: document.body.clientHeight,
+            behavior: 'smooth',
+          });
+        }
+        if (newImages.total - page * 12 < 12) {
+          setVisibleButton(false);
+        } else {
+          setVisibleButton(true);
+        }
       })
-      .catch(error => this.setState({ error, status: status.REJECTED }));
-  }
+      .catch(error => toast.error('Oops, something went wrong'))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchQuery]);
+
+  const getLargeImageForModal = data => {
+    toggleModal();
+    setLargeImg(data);
+  };
+
+  const toggleModal = () => {
+    setShowModal(!showModal);
+  };
+
+  const handleFormSubmit = data => {
+    setSearchQuery(data);
+    setImages([]);
+    setPage(1);
+    setVisibleButton(true);
+  };
+
+  const handleLoadMore = () => {
+    setPage(page + 1);
+  };
 
 
-  render() {
-    const { images, bigImage, status, error } = this.state;
-
-    if (status === 'idle') {
-      return (
-        <>
-          <Searchbar onSubmit={this.handelFormSubmit} />
-          <ToastContainer autoClose={4000} theme={'colored'} />
-        </>);
-    }
-
-    if (status === 'pending') {
-      return <Loader />
-    }
-
-    if (status === 'rejected') {
-      return (
-        <>
-          <Error message={error.message} />
-          <ToastContainer autoClose={4000} theme={'colored'} />
-        </>)
-    }
-
-    if (status === 'resolved') {
-      return (
-        <div>
-          <Searchbar onSubmit={this.handelFormSubmit} />
-          <ImageGallery images={images} toggleModal={this.toggleModal} />
-          {this.state.showModal && (<Modal image={bigImage} onClickModal={this.toggleModal} />)}
-          {this.state.images.length !==this.state.totalHits && (<Button onClick={this.onLoadMore} />)}
-          <ToastContainer autoClose={4000} theme={'colored'} />
-        </div>
-      );
-    }
-  }
+  return (
+    <>
+      <Searchbar onSubmit={handleFormSubmit} />
+      {images.length !== 0 && (
+        <ImageGallery images={images} toggleModal={toggleModal} modalImageLoad={getLargeImageForModal}/>
+      )} 
+      {loading && <Loader />}      
+      {visibleButton && <Button onClick={handleLoadMore} />}
+      {showModal && <Modal onClickModal={toggleModal} image={largeImg} />}
+      <ToastContainer autoClose={3000} theme={'colored'} />
+    </>
+  )
 };
+
+export default App;
+

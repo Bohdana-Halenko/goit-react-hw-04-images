@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-const ImageGalleryItem = ({id, webformatURL, tags, largeImageURL, onClickItem,}) => {
+const ImageGalleryItem = ({id, webformatURL, tags, largeImageURL, onClickItem, modalImageLoad, }) => {
   return (
     <li key={id}>
       <img
@@ -8,7 +8,7 @@ const ImageGalleryItem = ({id, webformatURL, tags, largeImageURL, onClickItem,})
         alt={tags}
         src={webformatURL}
         data-source={largeImageURL}
-        onClick={onClickItem}
+        onClick={() => { modalImageLoad(largeImageURL);}}
       />
     </li>
   );
@@ -19,7 +19,7 @@ ImageGalleryItem.propTypes = {
   webformatURL: PropTypes.string.isRequired,
   tags: PropTypes.string.isRequired,
   largeImageURL: PropTypes.string.isRequired,
-  onClickItem: PropTypes.func,
+  onClickItem: PropTypes.func.isRequired,
 };
 
 export default ImageGalleryItem;
