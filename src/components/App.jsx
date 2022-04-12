@@ -42,6 +42,7 @@ function App() {
             behavior: 'smooth',
           });
         }
+
         if (newImages.total - page * 12 < 12) {
           setVisibleButton(false);
         } else {
