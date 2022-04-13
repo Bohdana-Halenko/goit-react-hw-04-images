@@ -19,6 +19,7 @@ function App() {
   const [page, setPage] = useState(1);
   const [visibleButton, setVisibleButton] = useState(false);
 
+
   useEffect(() => {
     if (!searchQuery) {
       return;
@@ -26,6 +27,8 @@ function App() {
 
     setLoading(true);
     setVisibleButton(false);
+    
+    const pageSize = 12;
 
     api.fetchGallery(searchQuery, page)
       .then(newImages => {
@@ -43,7 +46,7 @@ function App() {
           });
         }
 
-        if (newImages.total - page * 12 < 12) {
+        if (newImages.total - page * pageSize < pageSize) {
           setVisibleButton(false);
         } else {
           setVisibleButton(true);
@@ -79,9 +82,9 @@ function App() {
     <>
       <Searchbar onSubmit={handleFormSubmit} />
       {images.length !== 0 && (
-        <ImageGallery images={images} toggleModal={toggleModal} modalImageLoad={getLargeImageForModal}/>
-      )} 
-      {loading && <Loader />}      
+        <ImageGallery images={images} toggleModal={toggleModal} modalImageLoad={getLargeImageForModal} />
+      )}
+      {loading && <Loader />}
       {visibleButton && <Button onClick={handleLoadMore} />}
       {showModal && <Modal onClickModal={toggleModal} image={largeImg} />}
       <ToastContainer autoClose={3000} theme={'colored'} />
